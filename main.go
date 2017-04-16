@@ -14,13 +14,13 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan struct{}, conn2_q chan st
 
 	for {
 		// conn1 からの入力待ち
-		messageBuf := make([]byte, 256)
-		messageLen, err := conn1.Read(messageBuf)
-		if err != nil {
+		messageBuf1 := make([]byte, 256)
+		messageLen1, err1 := conn1.Read(messageBuf1)
+		if err1 != nil {
 			panic("conn1 read error")
 		}
-		message := string(messageBuf[:messageLen])
-		println("conn1 message: ", message)
+		message1 := string(messageBuf1[:messageLen1])
+		println("conn1 message: ", message1)
 
 		// conn2 からの入力待ち
 		messageBuf2 := make([]byte, 256)
@@ -31,10 +31,13 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan struct{}, conn2_q chan st
 		message2 := string(messageBuf2[:messageLen2])
 		println("conn2 message: ", message2)
 
-		// conn1 にフレーム情報を返す
-		conn1.Write([]byte("frame"))
-		// conn2 にフレーム情報を返す
-		conn2.Write([]byte("frame"))
+		// conn1 にフレーム情報を返す TODO まとめる
+		conn1.Write([]byte(message1))
+		conn1.Write([]byte(message2))
+
+		// conn2 にフレーム情報を返す TODO まとめる
+		conn2.Write([]byte(message1))
+		conn2.Write([]byte(message2))
 	}
 
 	// 親のgoroutineを終わらせる
