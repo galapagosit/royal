@@ -7,14 +7,14 @@ import (
 )
 
 func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan struct{}, conn2_q chan struct{}) {
-	println("game start")
+
 	// 各クライアントの0フレーム目開始の合図
 	conn1.Write([]byte("start"))
 	conn2.Write([]byte("start"))
 
 	for {
 		// conn1 からの入力待ち
-		messageBuf1 := make([]byte, 256)
+		messageBuf1 := make([]byte, 1024)
 		messageLen1, err1 := conn1.Read(messageBuf1)
 		if err1 != nil {
 			panic("conn1 read error")
@@ -23,7 +23,7 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan struct{}, conn2_q chan st
 		println("conn1 message: ", message1)
 
 		// conn2 からの入力待ち
-		messageBuf2 := make([]byte, 256)
+		messageBuf2 := make([]byte, 1024)
 		messageLen2, err2 := conn2.Read(messageBuf2)
 		if err2 != nil {
 			panic("conn2 read error")
@@ -31,13 +31,11 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan struct{}, conn2_q chan st
 		message2 := string(messageBuf2[:messageLen2])
 		println("conn2 message: ", message2)
 
-		// conn1 にフレーム情報を返す TODO まとめる
-		conn1.Write([]byte(message1))
-		conn1.Write([]byte(message2))
+		// conn1 にフレーム情報を返す
+		conn1.Write([]byte(message1 + "#" + message2))
 
-		// conn2 にフレーム情報を返す TODO まとめる
-		conn2.Write([]byte(message1))
-		conn2.Write([]byte(message2))
+		// conn2 にフレーム情報を返す
+		conn2.Write([]byte(message1 + "#" + message2))
 	}
 
 	// 親のgoroutineを終わらせる
