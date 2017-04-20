@@ -6,41 +6,26 @@ import (
 	"strings"
 )
 
-func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan struct{}, conn2_q chan struct{}) {
-
-	// 各クライアントの0フレーム目開始の合図
-	conn1.Write([]byte("start"))
-	conn2.Write([]byte("start"))
-
+func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan string) {
 	for {
 		// conn1 からの入力待ち
-		messageBuf1 := make([]byte, 1024)
-		messageLen1, err1 := conn1.Read(messageBuf1)
-		if err1 != nil {
-			panic("conn1 read error")
-		}
-		message1 := string(messageBuf1[:messageLen1])
+		message1 := <-conn1_q
 		println("conn1 message: ", message1)
 
 		// conn2 からの入力待ち
-		messageBuf2 := make([]byte, 1024)
-		messageLen2, err2 := conn2.Read(messageBuf2)
-		if err2 != nil {
-			panic("conn2 read error")
-		}
-		message2 := string(messageBuf2[:messageLen2])
+		message2 := <-conn2_q
 		println("conn2 message: ", message2)
 
 		// conn1 にフレーム情報を返す
-		conn1.Write([]byte(message1 + "#" + message2))
+		conn1.Write([]byte(message1 + "#" + message2 + "\r\n"))
 
 		// conn2 にフレーム情報を返す
-		conn2.Write([]byte(message1 + "#" + message2))
+		conn2.Write([]byte(message1 + "#" + message2 + "\r\n"))
 	}
 
 	// 親のgoroutineを終わらせる
-	conn1_q <- struct{}{}
-	conn2_q <- struct{}{}
+	conn1_q <- "end"
+	conn2_q <- "end"
 }
 
 func main() {
@@ -50,7 +35,7 @@ func main() {
 	}
 
 	var waitConn net.Conn
-	var wait_conn_q chan struct{}
+	var wait_conn_q chan string
 
 	for {
 		conn, err := ln.Accept()
@@ -61,27 +46,35 @@ func main() {
 		go func() {
 			fmt.Printf("Accept %v\n", conn.RemoteAddr())
 
-			conn_q := make(chan struct{})
+			conn_q := make(chan string)
+			var buf string = ""
 
-			messageBuf := make([]byte, 256)
-			messageLen, err := conn.Read(messageBuf)
-			if err != nil {
-				panic("read error")
+			if waitConn == nil {
+				waitConn = conn
+				wait_conn_q = conn_q
+			} else {
+				go game(waitConn, conn, wait_conn_q, conn_q)
+				waitConn = nil
 			}
-			message := string(messageBuf[:messageLen])
-			println("message: ", message)
-			if strings.TrimRight(message, "\r\n") == "ready" {
-				if waitConn == nil {
-					waitConn = conn
-					wait_conn_q = conn_q
-				} else {
-					go game(waitConn, conn, wait_conn_q, conn_q)
-					waitConn = nil
+
+			for {
+				messageBuf := make([]byte, 1024)
+				messageLen, err := conn.Read(messageBuf)
+				if err != nil {
+					panic("read error")
+				}
+				message := string(messageBuf[:messageLen])
+				println("message: ", message)
+
+				splited := strings.Split(message, "\r\n")
+
+				buf += splited[len(splited) - 1]
+				lines := splited[:len(splited) - 1]
+
+				for _, line := range lines {
+					conn_q <- line
 				}
 			}
-
-			// gameが終了するまで待つ
-			<-conn_q
 		}()
 	}
 }
