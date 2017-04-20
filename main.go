@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"bufio"
+	"strings"
 )
 
 func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan string) {
@@ -17,10 +18,12 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 	for {
 		// conn1 からの入力待ち
 		line1, _ := reader1.ReadString('\n')
+		line1 = strings.TrimRight(line1, "\n")
 		println("conn1 message: ", line1)
 
 		// conn2 からの入力待ち
 		line2, _ := reader2.ReadString('\n')
+		line2 = strings.TrimRight(line2, "\n")
 		println("conn2 message: ", line2)
 
 		// conn1 にフレーム情報を返す
