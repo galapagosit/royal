@@ -4,23 +4,33 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"bufio"
 )
 
 func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan string) {
+
+	writer1 := bufio.NewWriter(conn1)
+	reader1 := bufio.NewReader(conn1)
+
+	writer2 := bufio.NewWriter(conn2)
+	reader2 := bufio.NewReader(conn2)
+
 	for {
 		// conn1 からの入力待ち
-		message1 := <-conn1_q
-		println("conn1 message: ", message1)
+		line1, _ := reader1.ReadString('\n')
+		println("conn1 message: ", line1)
 
 		// conn2 からの入力待ち
-		message2 := <-conn2_q
-		println("conn2 message: ", message2)
+		line2, _ := reader2.ReadString('\n')
+		println("conn2 message: ", line2)
 
 		// conn1 にフレーム情報を返す
-		conn1.Write([]byte(message1 + "#" + message2 + "\r\n"))
+		writer1.WriteString(line1 + "#" + line2)
+		writer1.Flush()
 
 		// conn2 にフレーム情報を返す
-		conn2.Write([]byte(message1 + "#" + message2 + "\r\n"))
+		writer2.WriteString(line1 + "#" + line2)
+		writer2.Flush()
 	}
 
 	// 親のgoroutineを終わらせる
@@ -39,6 +49,7 @@ func main() {
 
 	for {
 		conn, err := ln.Accept()
+
 		if err != nil {
 			panic("accept error")
 		}
@@ -47,7 +58,6 @@ func main() {
 			fmt.Printf("Accept %v\n", conn.RemoteAddr())
 
 			conn_q := make(chan string)
-			var buf string = ""
 
 			if waitConn == nil {
 				waitConn = conn
@@ -57,24 +67,8 @@ func main() {
 				waitConn = nil
 			}
 
-			for {
-				messageBuf := make([]byte, 1024)
-				messageLen, err := conn.Read(messageBuf)
-				if err != nil {
-					panic("read error")
-				}
-				message := string(messageBuf[:messageLen])
-				println("message: ", message)
-
-				splited := strings.Split(message, "\r\n")
-
-				buf += splited[len(splited) - 1]
-				lines := splited[:len(splited) - 1]
-
-				for _, line := range lines {
-					conn_q <- line
-				}
-			}
+			// 終わるまで待つ
+			<-conn_q
 		}()
 	}
 }
