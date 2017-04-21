@@ -18,20 +18,22 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 	for {
 		// conn1 からの入力待ち
 		line1, _ := reader1.ReadString('\n')
-		line1 = strings.TrimRight(line1, "\n")
-		println("conn1 message: ", line1)
+		line1 = strings.TrimRight(line1, "\r\n")
+		println("conn1 message:", line1)
 
 		// conn2 からの入力待ち
 		line2, _ := reader2.ReadString('\n')
-		line2 = strings.TrimRight(line2, "\n")
-		println("conn2 message: ", line2)
+		line2 = strings.TrimRight(line2, "\r\n")
 
 		// conn1 にフレーム情報を返す
-		writer1.WriteString(line1 + "#" + line2)
+		var message string = line2 + "#" + line1
+		println("message:" + message)
+
+		writer1.WriteString(message)
 		writer1.Flush()
 
 		// conn2 にフレーム情報を返す
-		writer2.WriteString(line1 + "#" + line2)
+		writer2.WriteString(message)
 		writer2.Flush()
 	}
 
