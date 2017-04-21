@@ -24,6 +24,7 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 		// conn2 からの入力待ち
 		line2, _ := reader2.ReadString('\n')
 		line2 = strings.TrimRight(line2, "\r\n")
+		println("conn2 message:", line2)
 
 		// conn1 にフレーム情報を返す
 		var message string = line2 + "#" + line1
