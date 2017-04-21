@@ -28,14 +28,15 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 
 		// conn1 にフレーム情報を返す
 		var message string = line2 + "#" + line1
-		println("message:" + message)
 
 		writer1.WriteString(message)
 		writer1.Flush()
+		println("conn1 send:" + message)
 
 		// conn2 にフレーム情報を返す
 		writer2.WriteString(message)
 		writer2.Flush()
+		println("conn2 send:" + message)
 	}
 
 	// 親のgoroutineを終わらせる
