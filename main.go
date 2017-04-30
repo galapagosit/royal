@@ -27,7 +27,7 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 		println("conn2 message:", line2)
 
 		// conn1 にフレーム情報を返す
-		var message string = line2 + "#" + line1 + "\r\n"
+		var message string = line1 + "#" + line2 + "\r\n"
 
 		writer1.WriteString(message)
 		writer1.Flush()
