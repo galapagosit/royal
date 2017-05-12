@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan string) {
+func game(conn1 net.Conn, conn2 net.Conn) {
 
 	writer1 := bufio.NewWriter(conn1)
 	reader1 := bufio.NewReader(conn1)
@@ -17,12 +17,20 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 
 	for {
 		// conn1 からの入力待ち
-		line1, _ := reader1.ReadString('\n')
+		line1, err1 := reader1.ReadString('\n')
+		if err1 != nil {
+			println("conn1 read error")
+			return
+		}
 		line1 = strings.TrimRight(line1, "\r\n")
 		println("conn1 message:", line1)
 
 		// conn2 からの入力待ち
-		line2, _ := reader2.ReadString('\n')
+		line2, err2 := reader2.ReadString('\n')
+		if err2 != nil {
+			println("conn2 read error")
+			return
+		}
 		line2 = strings.TrimRight(line2, "\r\n")
 		println("conn2 message:", line2)
 
@@ -38,10 +46,6 @@ func game(conn1 net.Conn, conn2 net.Conn, conn1_q chan string, conn2_q chan stri
 		writer2.Flush()
 		println("conn2 send:" + message)
 	}
-
-	// 親のgoroutineを終わらせる
-	conn1_q <- "end"
-	conn2_q <- "end"
 }
 
 func main() {
@@ -50,31 +54,20 @@ func main() {
 		panic(err)
 	}
 
-	var waitConn net.Conn
-	var wait_conn_q chan string
-
 	for {
-		conn, err := ln.Accept()
-
-		if err != nil {
-			panic("accept error")
+		conn1, err1 := ln.Accept()
+		if err1 != nil {
+			panic("conn1 accept error")
 		}
+		fmt.Printf("Accept %v\n", conn1.RemoteAddr())
 
-		go func() {
-			fmt.Printf("Accept %v\n", conn.RemoteAddr())
+		conn2, err2 := ln.Accept()
+		if err2 != nil {
+			panic("conn2 accept error")
+		}
+		fmt.Printf("Accept %v\n", conn2.RemoteAddr())
 
-			conn_q := make(chan string)
-
-			if waitConn == nil {
-				waitConn = conn
-				wait_conn_q = conn_q
-			} else {
-				go game(waitConn, conn, wait_conn_q, conn_q)
-				waitConn = nil
-			}
-
-			// 終わるまで待つ
-			<-conn_q
-		}()
+		fmt.Printf(">>> game start")
+		go game(conn1, conn2)
 	}
 }
